@@ -135,8 +135,9 @@ export default function Notebook({ onStealthTrigger }) {
   };
 
   return (
-    <div className="flex h-screen w-full bg-slate-950 overflow-hidden font-sans text-slate-100">
+    <div className="fixed inset-0 flex h-full w-full bg-slate-950 overflow-hidden font-sans text-slate-100">
       <NoteSidebar
+
         notes={notes}
         activeNoteId={activeNoteId}
         onSelectNote={(id) => {

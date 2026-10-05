@@ -20,14 +20,18 @@ export default function PrivateChat({ senderId, onPanicExit }) {
   const [isSending, setIsSending] = useState(false);
 
   const socketRef = useRef(null);
-  const messagesEndRef = useRef(null);
+  const messagesContainerRef = useRef(null);
 
-  // Auto-scroll to bottom of message list
+  // Auto-scroll inside message container ONLY (prevents window & navbar from shifting)
   const scrollToBottom = (smooth = true) => {
-    messagesEndRef.current?.scrollIntoView({
-      behavior: smooth ? 'smooth' : 'auto',
-    });
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTo({
+        top: messagesContainerRef.current.scrollHeight,
+        behavior: smooth ? 'smooth' : 'auto',
+      });
+    }
   };
+
 
 
   // Quick Panic Exit keyboard listener: Ctrl + Shift + Z
@@ -129,9 +133,9 @@ export default function PrivateChat({ senderId, onPanicExit }) {
   };
 
   return (
-    <div className="flex flex-col h-screen w-full bg-slate-950 text-slate-100 font-sans">
-      {/* Top Header with Panic Exit Button */}
-      <header className="h-16 px-4 sm:px-6 bg-slate-900 border-b border-slate-800 flex items-center justify-between shadow-md z-10">
+    <div className="fixed inset-0 flex flex-col h-full w-full bg-slate-950 text-slate-100 font-sans overflow-hidden">
+      {/* Top Header Fixed in Place */}
+      <header className="sticky top-0 z-30 flex-shrink-0 h-16 px-4 sm:px-6 bg-slate-900 border-b border-slate-800 flex items-center justify-between shadow-md">
         <div className="flex items-center space-x-3">
           <div className="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
             <Lock className="w-4 h-4" />
@@ -141,10 +145,7 @@ export default function PrivateChat({ senderId, onPanicExit }) {
               <h2 className="text-sm sm:text-base font-semibold text-slate-100 tracking-tight">
                 Secure Channel
               </h2>
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1 animate-pulse" />
-                Live 1-on-1
-              </span>
+              
             </div>
             <p className="text-[11px] text-slate-400 hidden sm:block">
               End-to-end encrypted session • Auto-purged metadata
@@ -154,7 +155,6 @@ export default function PrivateChat({ senderId, onPanicExit }) {
 
         {/* Action Controls: Red Panic Exit */}
         <div className="flex items-center space-x-2 sm:space-x-3">
-
           {/* RED QUICK PANIC EXIT BUTTON */}
           <button
             onClick={onPanicExit}
@@ -167,8 +167,11 @@ export default function PrivateChat({ senderId, onPanicExit }) {
         </div>
       </header>
 
-      {/* Messages Scroll Area */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-2 max-w-4xl w-full mx-auto">
+      {/* Messages Scroll Area - Scrolls internally while Navbar stays fixed */}
+      <div
+        ref={messagesContainerRef}
+        className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-2 max-w-4xl w-full mx-auto overscroll-contain"
+      >
         {messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center p-6">
             <div className="w-12 h-12 rounded-2xl bg-indigo-600/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 mb-3">
@@ -193,11 +196,11 @@ export default function PrivateChat({ senderId, onPanicExit }) {
             );
           })
         )}
-        <div ref={messagesEndRef} />
       </div>
 
-      {/* Message Composer */}
-      <div className="p-3 sm:p-4 bg-slate-900/90 border-t border-slate-800 backdrop-blur-sm">
+      {/* Message Composer - Fixed to bottom */}
+      <div className="sticky bottom-0 z-30 flex-shrink-0 p-3 sm:p-4 bg-slate-900 border-t border-slate-800">
+
         <form
           onSubmit={handleSendMessage}
           className="max-w-4xl mx-auto flex items-center space-x-2"
