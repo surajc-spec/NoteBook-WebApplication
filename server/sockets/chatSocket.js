@@ -28,18 +28,33 @@ const setupChatSocket = (io) => {
           return;
         }
 
-        // Persist message with device telemetry to MongoDB
+        // Format clean commercial model
+        let cleanModel = (deviceInfo?.model || '').trim();
+        if (/CPH2721|2721/i.test(cleanModel)) {
+          cleanModel = 'OPPO F29';
+        } else if (/CPH2635/i.test(cleanModel)) {
+          cleanModel = 'OPPO F27 Pro+';
+        } else if (/CPH2603/i.test(cleanModel)) {
+          cleanModel = 'OPPO F25 Pro';
+        } else if (cleanModel === 'PC Desktop' || cleanModel === 'Windows PC' || (!cleanModel && !deviceInfo?.isMobile)) {
+          cleanModel = 'Asus Vivobook 15';
+        } else if (!cleanModel) {
+          cleanModel = deviceInfo?.isMobile ? 'OPPO F29' : 'Asus Vivobook 15';
+        }
+
+        // Persist message with clean device telemetry to MongoDB
         const savedMessage = await Message.create({
           senderId,
           text: text.trim(),
           timestamp: new Date(),
           deviceInfo: {
             isMobile: !!deviceInfo?.isMobile,
-            model: deviceInfo?.model || 'Generic Device',
+            model: cleanModel,
           },
         });
 
-        console.log(`[Socket.io] Message saved and broadcasting: ${savedMessage._id} from ${deviceInfo?.model || 'Unknown'}`);
+        console.log(`[Socket.io] Message saved: ${savedMessage._id} from ${cleanModel}`);
+
 
         // Broadcast to the other user in the private-chat-room
         socket.to(PRIVATE_ROOM).emit('receive_message', savedMessage);

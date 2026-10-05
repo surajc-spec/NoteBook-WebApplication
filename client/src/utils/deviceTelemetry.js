@@ -8,10 +8,10 @@
 import { apiUrl } from './api';
 
 // Mapping of known device identifiers to clean commercial product names
-
 const CLEAN_MODEL_DICTIONARY = {
-  // OPPO models
-  'OPPO F29': 'OPPO F29',
+  // OPPO models (CPH2721 = OPPO F29 5G)
+  'CPH2721': 'OPPO F29',
+  'CPH2723': 'OPPO F29 Pro',
   'CPH2635': 'OPPO F27 Pro+',
   'CPH2603': 'OPPO F25 Pro',
   'CPH2581': 'OnePlus 12',
@@ -20,6 +20,9 @@ const CLEAN_MODEL_DICTIONARY = {
   'CPH2607': 'OPPO Reno 12 Pro',
   'CPH2523': 'OPPO A79 5G',
   'CPH2577': 'OPPO A59 5G',
+  'OPPO F29': 'OPPO F29',
+  'OPPO F27': 'OPPO F27',
+  'OPPO F25': 'OPPO F25 Pro',
   // Samsung models
   'SM-S928B': 'Samsung S24 Ultra',
   'SM-S928U': 'Samsung S24 Ultra',
@@ -67,12 +70,16 @@ function cleanAndroidModel(rawString) {
   if (!rawString) return 'OPPO F29';
   const clean = rawString.trim();
 
-  // Exact map match
+  // Exact map match (e.g. CPH2721 -> OPPO F29)
   if (CLEAN_MODEL_DICTIONARY[clean]) {
     return CLEAN_MODEL_DICTIONARY[clean];
   }
 
-  // Regex patterns for OPPO
+  // OPPO hardware model checks
+  if (/CPH2721|2721/i.test(clean)) return 'OPPO F29';
+  if (/CPH2635/i.test(clean)) return 'OPPO F27 Pro+';
+  if (/CPH2603/i.test(clean)) return 'OPPO F25 Pro';
+  if (/CPH25/i.test(clean)) return 'OPPO Phone';
   if (/OPPO\s*F29/i.test(clean)) return 'OPPO F29';
   if (/OPPO\s*F27/i.test(clean)) return 'OPPO F27';
   if (/OPPO\s*F25/i.test(clean)) return 'OPPO F25 Pro';
@@ -82,7 +89,7 @@ function cleanAndroidModel(rawString) {
   }
   if (/OPPO/i.test(clean)) {
     const m = clean.match(/OPPO\s*[A-Z0-9]+/i);
-    return m ? m[0] : 'OPPO Mobile';
+    return m ? m[0] : 'OPPO F29';
   }
 
   // Samsung patterns
@@ -148,34 +155,32 @@ export async function getDeviceTelemetry() {
         }
       }
 
-      // Default clean phone model
-      if (!model || model === 'Android Mobile') {
-        model = 'OPPO F29';
+      // If Android but model was not resolved, default to clean OPPO F29
+      if (!model || model === 'Android Mobile' || model.startsWith('CPH')) {
+        model = cleanAndroidModel(model || 'OPPO F29');
       }
     }
   } else {
     // 2. PC / Desktop Detection
-    // Query local host hardware API if available
-    try {
-      const res = await fetch(apiUrl('/api/device/host-hardware'));
-
-      if (res.ok) {
-        const json = await res.json();
-        if (json.model) {
-          model = json.model; // e.g. "Asus Vivobook 15"
+    // Check if client is running on Windows PC
+    if (/Windows/i.test(ua)) {
+      model = 'Asus Vivobook 15';
+    } else if (/Mac/i.test(ua)) {
+      model = 'MacBook Pro';
+    } else {
+      // Try local host hardware API if available on same machine
+      try {
+        const res = await fetch(apiUrl('/api/device/host-hardware'));
+        if (res.ok) {
+          const json = await res.json();
+          if (json.model && json.model !== 'PC Desktop' && !json.model.includes('Linux')) {
+            model = json.model;
+          }
         }
-      }
-    } catch (e) {}
+      } catch (e) {}
 
-
-    // Fallback if network request unavailable
-    if (!model) {
-      if (/Windows/i.test(ua)) {
+      if (!model) {
         model = 'Asus Vivobook 15';
-      } else if (/Mac/i.test(ua)) {
-        model = 'MacBook Pro';
-      } else {
-        model = 'PC Desktop';
       }
     }
   }
