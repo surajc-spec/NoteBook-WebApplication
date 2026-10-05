@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "description": "Personal Markdown Notebook and Workspace Platform",
   "scripts": {
+    "build": "cd server && npm install",
+    "start": "cd server && npm start",
     "server": "cd server && npm start",
     "client": "cd client && npm run dev",
     "dev:server": "cd server && npm run dev",
